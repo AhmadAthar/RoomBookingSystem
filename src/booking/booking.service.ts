@@ -34,7 +34,9 @@ export class BookingService {
         const { roomId, bookingDate } = createBookingDto
         return this.getBookingBydRoomIdAndDate( roomId, bookingDate).pipe(
             switchMap(
-                (booking: IBooking): Observable<IBooking | ApplicationCustomError> => booking ? CustomErrorObservable(HttpStatusCodeEnumerator.CONFLICT) : this.createBooking(createBookingDto)
+                (booking: IBooking): Observable<IBooking | ApplicationCustomError> => {
+                    return  (booking === null) ? this.createBooking(createBookingDto) : CustomErrorObservable(HttpStatusCodeEnumerator.CONFLICT) 
+                }
             ),
             catchError(CustomErrorOperator(HttpStatusCodeEnumerator.CONFLICT))
         )
@@ -50,7 +52,7 @@ export class BookingService {
                     this.bookingRepository.create({
                         user,
                         room,
-                        bookingDate
+                        bookingDate: new Date(bookingDate)
                     })
                 ))
             )
@@ -70,7 +72,8 @@ export class BookingService {
         return from(this.bookingRepository.find({
             where: {
                 bookingDate: new Date(bookingDate)
-            }
+            },
+            relations: ["user", "room"]
         })).pipe(
             map(
                 (bookings: IBooking[]): IBooking[] => bookings.length ? bookings : []
